@@ -171,3 +171,7 @@ npm run deploy       # 部署
 - Graph 不可用的账号无法在 Worker 版中读取邮件
 - 极简部署没有登录和云同步
 - 完整部署需要正确配置 D1 和 Secret
+
+## 致谢
+
+感谢 [JUk1-GH](https://github.com/JUk1-GH) 的原始项目：[email-management-tool](https://github.com/JUk1-GH/email-management-tool)。
