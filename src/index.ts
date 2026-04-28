@@ -118,7 +118,7 @@ const DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
 const DEFAULT_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const DEFAULT_GMAIL_API_BASE_URL = "https://gmail.googleapis.com/gmail/v1";
 const AUTH_COOKIE_NAME = "emw_session";
-const PASSWORD_ITERATIONS = 210_000;
+const PASSWORD_ITERATIONS = 100_000;
 
 function envString(value: string | undefined, fallback = ""): string {
   return String(value || fallback).trim();
@@ -297,6 +297,17 @@ function extractErrorText(payload: unknown): string {
   } catch {
     return String(payload);
   }
+}
+
+function isD1NotInitializedError(error: unknown): boolean {
+  const text = extractErrorText(error).toLowerCase();
+  return text.includes("no such table") && (
+    text.includes("users") ||
+    text.includes("auth_sessions") ||
+    text.includes("cloud_accounts") ||
+    text.includes("cloud_account_secrets") ||
+    text.includes("auth_login_attempts")
+  );
 }
 
 function classifyMicrosoftError(payload: unknown): [string, string] {
@@ -1105,6 +1116,20 @@ export default {
       return textResponse("Static assets binding is not configured", 500, env);
     } catch (error) {
       if (error instanceof AppError) return jsonResponse(error.toPayload(), error.statusCode, env);
+      if (isD1NotInitializedError(error)) {
+        return jsonResponse(
+          {
+            success: false,
+            message: "D1 数据库还没有初始化，请先执行 migrations 后再注册/登录",
+            error_type: "database_not_initialized",
+            details: {
+              command: "npx wrangler d1 migrations apply email-management-worker-db --remote",
+            },
+          },
+          500,
+          env,
+        );
+      }
       console.error(error);
       return jsonResponse({ success: false, message: "服务器内部错误", error_type: "invalid" }, 500, env);
     }

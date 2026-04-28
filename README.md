@@ -60,7 +60,7 @@ cp wrangler.example.toml wrangler.toml
 npx wrangler d1 create email-management-worker-db
 ```
 
-4. 取消 `wrangler.toml` 中 D1 配置块的注释，并且**只修改 `database_id`**。`binding` 必须保持为 `DB`，`database_name` 保持为 `email-management-worker-db`。不要直接复制 Wrangler 输出里的 `binding = "email_management_worker_db"`，因为 Worker 代码读取的是 `env.DB`。
+4. 取消 `wrangler.toml` 中 D1 配置块的注释，并且**只修改 `database_id`**。`binding` 保持 `DB`，`database_name` 保持 `email-management-worker-db`。
 
 ```toml
 [[d1_databases]]
@@ -80,8 +80,6 @@ npx wrangler d1 migrations apply email-management-worker-db --remote
 ```bash
 bash scripts/setup-secrets.sh
 ```
-
-这个脚本会自动生成两段随机密钥，上传到 Cloudflare Worker Secrets，并把本地副本保存到 `.secrets/worker-secrets.env`。`.secrets/` 已加入 `.gitignore`，不要公开分享这个目录。
 
 7. 部署：
 
