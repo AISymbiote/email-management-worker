@@ -75,12 +75,13 @@ database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 npx wrangler d1 migrations apply email-management-worker-db --remote
 ```
 
-6. 设置登录和加密所需 Secret：
+6. 一键生成并上传登录与加密密钥：
 
 ```bash
-npx wrangler secret put EMAIL_MANAGEMENT_WORKER_SESSION_SECRET
-npx wrangler secret put EMAIL_MANAGEMENT_WORKER_ENCRYPTION_SECRET
+bash scripts/setup-secrets.sh
 ```
+
+这个脚本会自动生成两段随机密钥，上传到 Cloudflare Worker Secrets，并把本地副本保存到 `.secrets/worker-secrets.env`。`.secrets/` 已加入 `.gitignore`，不要公开分享这个目录。
 
 7. 部署：
 

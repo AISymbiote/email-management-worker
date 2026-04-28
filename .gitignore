@@ -30,3 +30,6 @@ server-backups/
 # Local Cloudflare deploy config
 wrangler.toml
 !wrangler.example.toml
+
+# Locally generated Worker secrets
+.secrets/
