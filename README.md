@@ -105,7 +105,7 @@ npm run deploy
 
 ## 自定义域名（可选）
 
-默认会部署到 `workers.dev`。
+默认会部署到 `workers.dev`。模板里已经显式设置 `workers_dev = true`，所以绑定自定义域名后，原来的 workers.dev 地址也会继续保留。
 
 如果你要绑定自己的域名，只需要修改本地 `wrangler.toml` 中的自定义域名示例块：
 
