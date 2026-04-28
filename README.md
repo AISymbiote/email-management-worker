@@ -87,6 +87,22 @@ bash scripts/setup-secrets.sh
 npm run deploy
 ```
 
+## 后续重新部署
+
+代码或前端页面有更新时，直接重新部署：
+
+```bash
+npm run deploy
+```
+
+如果修改了 `wrangler.toml` 里的 D1、域名或其他 Worker 配置，也使用同一个命令重新部署：
+
+```bash
+npm run deploy
+```
+
+已经创建过的 D1 数据库、已经执行过的 migration、已经上传过的密钥，不需要在每次重新部署时重复操作。
+
 ## 自定义域名（可选）
 
 默认会部署到 `workers.dev`。
