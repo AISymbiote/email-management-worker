@@ -115,7 +115,7 @@ pattern = "mail.example.com"
 custom_domain = true
 ```
 
-域名需要已经托管在当前 Cloudflare account 下。
+> ⚠️ 自定义域名必须已经托管在当前 Cloudflare account 下，否则这里配置了也不会生效。
 
 ## 怎么使用
 
