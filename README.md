@@ -16,13 +16,21 @@
 npm install
 ```
 
-2. 本地预览：
+2. 复制部署配置模板：
+
+```bash
+cp wrangler.example.toml wrangler.toml
+```
+
+`wrangler.toml` 是你的本地部署配置，后续可以在里面填写自己的域名或 D1 信息；它不会提交到代码库。
+
+3. 本地预览：
 
 ```bash
 npm run dev
 ```
 
-3. 部署：
+4. 部署：
 
 ```bash
 npm run deploy
@@ -38,13 +46,21 @@ npm run deploy
 npm install
 ```
 
-2. 创建 D1 数据库：
+2. 复制部署配置模板：
+
+```bash
+cp wrangler.example.toml wrangler.toml
+```
+
+`wrangler.toml` 是你的本地部署配置，后续要在里面填写 D1 信息；它不会提交到代码库。
+
+3. 创建 D1 数据库：
 
 ```bash
 npx wrangler d1 create email-management-worker-db
 ```
 
-3. 把返回的 `database_id` 填入 `wrangler.toml`，并取消 D1 配置块的注释：
+4. 把返回的 `database_id` 填入 `wrangler.toml`，并取消 D1 配置块的注释：
 
 ```toml
 [[d1_databases]]
@@ -53,20 +69,20 @@ database_name = "email-management-worker-db"
 database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 ```
 
-4. 初始化数据库表：
+5. 初始化数据库表：
 
 ```bash
 npx wrangler d1 migrations apply email-management-worker-db --remote
 ```
 
-5. 设置登录和加密所需 Secret：
+6. 设置登录和加密所需 Secret：
 
 ```bash
 npx wrangler secret put EMAIL_MANAGEMENT_WORKER_SESSION_SECRET
 npx wrangler secret put EMAIL_MANAGEMENT_WORKER_ENCRYPTION_SECRET
 ```
 
-6. 部署：
+7. 部署：
 
 ```bash
 npm run deploy
@@ -76,7 +92,7 @@ npm run deploy
 
 默认会部署到 `workers.dev`。
 
-如果你要绑定自己的域名，只需要修改 `wrangler.toml` 中的自定义域名示例块：
+如果你要绑定自己的域名，只需要修改本地 `wrangler.toml` 中的自定义域名示例块：
 
 ```toml
 [[routes]]

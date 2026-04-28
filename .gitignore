@@ -27,3 +27,6 @@ Thumbs.db
 # Local backups and large unrelated archives
 server-backups/
 .idea
+# Local Cloudflare deploy config
+wrangler.toml
+!wrangler.example.toml

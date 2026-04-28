@@ -3,7 +3,7 @@
 当前主线是 Cloudflare Worker 版本。优先关注：
 
 1. `README.md`
-2. `wrangler.toml`
+2. `wrangler.example.toml`
 3. `src/index.ts`
 4. `email-management-app/index.html`
 5. `email-management-app/main.js`
@@ -17,7 +17,8 @@
 - `src/`：Worker API 和邮件读取入口
 - `email-management-app/`：由 Worker Assets 托管的 Vue 前端
 - `migrations/`：完整部署所需 D1 schema
-- `wrangler.toml`：Worker 部署配置
+- `wrangler.example.toml`：公开的 Worker 配置模板
+- `wrangler.toml`：本地部署配置，由模板复制生成，不提交
 
 `legacy/` 下是历史参考，不参与当前部署；不要把里面的 Flask 后端、React 实验前端、旧原型或旧文档当成当前主线。
 
@@ -51,12 +52,13 @@
 3. 极简部署必须在没有 D1 绑定时可用。
 4. 完整部署才依赖 D1 和登录相关 Secret。
 5. 邮件内容、附件、邮件列表缓存不得写入 D1/KV/云端。
-6. `wrangler.toml` 只放配置示例，不放 CLI 操作命令。
+6. `wrangler.example.toml` 只放公开配置示例，不放 CLI 操作命令。
+7. `wrangler.toml` 可能包含个人域名或 D1 id，必须保持为本地文件，不提交。
 
 ## 提交前检查
 
 ```bash
 npm run check
 node --check email-management-app/main.js
-npx wrangler deploy --dry-run
+npx wrangler deploy --dry-run --config wrangler.example.toml
 ```
