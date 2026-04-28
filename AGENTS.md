@@ -1,4 +1,4 @@
-# jemail Contributor Guide
+# email-management-worker Contributor Guide
 
 这份文件给新的 AI 代理或新接手开发者快速建立上下文。
 
@@ -9,15 +9,15 @@
 1. `README.md`
 2. `docs/architecture.md`
 3. `docs/development.md`
-4. `jemail-app/main.js`
-5. `jemail-backend/backend/app.py`
+4. `email-management-app/main.js`
+5. `email-management-backend/backend/app.py`
 
 ## 当前项目边界
 
 当前生产主线只有两部分：
 
-- `jemail-app/`
-- `jemail-backend/`
+- `email-management-app/`
+- `email-management-backend/`
 
 不要把下面这些当成当前生产代码：
 
@@ -39,32 +39,32 @@
 
 ### 前端
 
-- `jemail-app/index.html`
+- `email-management-app/index.html`
   - 页面骨架和本地 vendor 资源加载
-- `jemail-app/main.js`
+- `email-management-app/main.js`
   - Vue 3 主逻辑
   - 账号导入、分组、批量复制、邮件读取、接口调用
-- `jemail-app/db.js`
+- `email-management-app/db.js`
   - 浏览器 `IndexedDB` 封装
   - `accounts` 和 `emails` 两个 object store
-- `jemail-app/config.js`
+- `email-management-app/config.js`
   - 运行时接口地址覆盖入口
 
 ### 后端
 
-- `jemail-backend/backend/app.py`
+- `email-management-backend/backend/app.py`
   - Flask 入口
   - `POST /detect-permission`
   - `POST /api/emails/refresh`
   - 同源静态文件托管
-- `jemail-backend/backend/microsoft.py`
+- `email-management-backend/backend/microsoft.py`
   - 微软 refresh token 换 access token
   - Graph 探测和 Graph 拉信
-- `jemail-backend/backend/mail.py`
+- `email-management-backend/backend/mail.py`
   - IMAP XOAUTH2 登录和邮件提取
-- `jemail-backend/backend/models.py`
+- `email-management-backend/backend/models.py`
   - 请求校验和返回结构
-- `jemail-backend/backend/config.py`
+- `email-management-backend/backend/config.py`
   - 环境变量配置
 
 ## 核心数据流
@@ -129,8 +129,8 @@ POST /api/emails/refresh
 
 如果你改账号模型、导入格式或分组逻辑，要同步检查：
 
-- `jemail-app/db.js`
-- `jemail-app/main.js`
+- `email-management-app/db.js`
+- `email-management-app/main.js`
 
 ### 2. 误以为 Graph 是主链
 
@@ -160,14 +160,14 @@ POST /api/emails/refresh
 - `outlook-manager/`
 - Nextcloud
 
-而是 `jemail-app + jemail-backend`。
+而是 `email-management-app + email-management-backend`。
 
 ## 本地开发命令
 
 后端启动：
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/jemail-backend
+cd /Volumes/SSD/Email\ Tool/email-management-backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -178,7 +178,7 @@ python app.py
 测试：
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/jemail-backend
+cd /Volumes/SSD/Email\ Tool/email-management-backend
 .venv/bin/python -m unittest discover -s tests -v
 ```
 

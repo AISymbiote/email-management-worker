@@ -65,11 +65,11 @@ class GoogleTokenBundle:
 def ensure_google_oauth_config(settings: Settings) -> None:
     missing: list[str] = []
     if not settings.google_client_id:
-        missing.append("JEMAIL_GOOGLE_CLIENT_ID")
+        missing.append("EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID")
     if not settings.google_client_secret:
-        missing.append("JEMAIL_GOOGLE_CLIENT_SECRET")
+        missing.append("EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET")
     if not settings.google_redirect_uri:
-        missing.append("JEMAIL_GOOGLE_REDIRECT_URI")
+        missing.append("EMAIL_MANAGEMENT_WORKER_GOOGLE_REDIRECT_URI")
     if missing:
         raise AppError(
             "Google OAuth 配置不完整，请先设置后端环境变量",
@@ -83,7 +83,7 @@ def _google_state_secret(settings: Settings) -> bytes:
     secret = settings.google_state_secret or settings.google_client_secret
     if not secret:
         raise AppError(
-            "Google OAuth state secret 未配置，请设置 JEMAIL_GOOGLE_STATE_SECRET 或 JEMAIL_GOOGLE_CLIENT_SECRET",
+            "Google OAuth state secret 未配置，请设置 EMAIL_MANAGEMENT_WORKER_GOOGLE_STATE_SECRET 或 EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET",
             "invalid",
             500,
         )

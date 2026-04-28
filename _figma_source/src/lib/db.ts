@@ -145,7 +145,7 @@ function mergeAccountRecords(primary: Account, incoming: Account): Account {
 
 /**
  * IndexedDB 数据库封装类
- * 1:1 移植自 jemail-app/db.js，保持完全兼容
+ * 1:1 移植自 email-management-app/db.js，保持完全兼容
  * DB 名、版本、中文字段名、索引结构不变
  */
 class LocalDatabase {

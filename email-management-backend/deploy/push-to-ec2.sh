@@ -10,9 +10,9 @@ SSH_KEY="$1"
 REMOTE="$2"
 API_DOMAIN="${3:-api.example.com}"
 CORS_ORIGIN="${4:-https://app.example.com}"
-REMOTE_DIR="/opt/jemail-backend"
+REMOTE_DIR="/opt/email-management-backend"
 REMOTE_FRONTEND_DIR="$REMOTE_DIR/frontend-dist"
-REMOTE_DATA_DIR="${REMOTE_DATA_DIR:-/var/lib/jemail}"
+REMOTE_DATA_DIR="${REMOTE_DATA_DIR:-/var/lib/email-management-worker}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -31,16 +31,16 @@ rsync -az --delete \
   --exclude '.venv' \
   --exclude '__pycache__' \
   --exclude '*.pyc' \
-  "$PROJECT_DIR/" "$REMOTE:/tmp/jemail-backend/"
+  "$PROJECT_DIR/" "$REMOTE:/tmp/email-management-backend/"
 
 rsync -az --delete \
   -e "ssh -i $SSH_KEY" \
-  "$FRONTEND_DIST/" "$REMOTE:/tmp/jemail-frontend-dist/"
+  "$FRONTEND_DIST/" "$REMOTE:/tmp/email-management-frontend-dist/"
 
 ssh -i "$SSH_KEY" "$REMOTE" "set -e
 sudo mkdir -p $REMOTE_DIR
-sudo rsync -a --delete --exclude '.env' --exclude '.venv' --exclude 'data' /tmp/jemail-backend/ $REMOTE_DIR/
+sudo rsync -a --delete --exclude '.env' --exclude '.venv' --exclude 'data' /tmp/email-management-backend/ $REMOTE_DIR/
 sudo mkdir -p $REMOTE_FRONTEND_DIR
-sudo rsync -a /tmp/jemail-frontend-dist/ $REMOTE_FRONTEND_DIR/
+sudo rsync -a /tmp/email-management-frontend-dist/ $REMOTE_FRONTEND_DIR/
 sudo chown -R \$(whoami):\$(whoami) $REMOTE_DIR
 APP_DIR=$REMOTE_DIR FRONTEND_DIR=$REMOTE_FRONTEND_DIR APP_DATA_DIR=$REMOTE_DATA_DIR API_DOMAIN=$API_DOMAIN CORS_ORIGIN=$CORS_ORIGIN RUN_USER=\$(whoami) bash $REMOTE_DIR/deploy/provision-ubuntu-ec2.sh"

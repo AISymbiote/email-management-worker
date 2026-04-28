@@ -14,7 +14,7 @@ import type {
   Provider,
 } from '@/types'
 
-export const AUTH_TOKEN_STORAGE_KEY = 'jemail.auth.token'
+export const AUTH_TOKEN_STORAGE_KEY = 'email-management-worker.auth.token'
 
 export function getStoredAuthToken(): string {
   return ''
@@ -413,7 +413,7 @@ export async function bindGoogleOAuth(
 ): Promise<GoogleOAuthCallbackPayload> {
   const popup = window.open(
     buildGoogleOAuthStartUrl(accountEmail),
-    'jemail-google-oauth',
+    'email-management-worker-google-oauth',
     'width=560,height=760,menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes'
   )
 

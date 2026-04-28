@@ -24,12 +24,12 @@
   - Outlook / Microsoft 库存账号
   - Gmail 库存账号与 OAuth 绑定账号
 
-  Gmail 本地联调时，请同时启动 `jemail-backend`，并确保后端 `.env` 已配置：
+  Gmail 本地联调时，请同时启动 `email-management-backend`，并确保后端 `.env` 已配置：
 
-  - `JEMAIL_GOOGLE_CLIENT_ID`
-  - `JEMAIL_GOOGLE_CLIENT_SECRET`
-  - `JEMAIL_GOOGLE_REDIRECT_URI`
-  - `JEMAIL_GOOGLE_STATE_SECRET`
+  - `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID`
+  - `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET`
+  - `EMAIL_MANAGEMENT_WORKER_GOOGLE_REDIRECT_URI`
+  - `EMAIL_MANAGEMENT_WORKER_GOOGLE_STATE_SECRET`
 
   本地常用回调地址：
 
@@ -43,7 +43,7 @@
 
   注意：如果 Google OAuth consent screen 仍处于 Testing，refresh token 可能在 7 天后失效。
 
-  If you want to force a specific Node binary, set `JEMAIL_NODE_BIN` first, for example:
+  If you want to force a specific Node binary, set `EMAIL_MANAGEMENT_WORKER_NODE_BIN` first, for example:
 
-  `JEMAIL_NODE_BIN=/opt/homebrew/bin/node npm run dev`
+  `EMAIL_MANAGEMENT_WORKER_NODE_BIN=/opt/homebrew/bin/node npm run dev`
   

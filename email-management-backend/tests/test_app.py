@@ -21,7 +21,7 @@ class BackendAppTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         frontend_dir = Path(self.temp_dir.name)
-        (frontend_dir / "index.html").write_text("<html><body>jemail</body></html>", encoding="utf-8")
+        (frontend_dir / "index.html").write_text("<html><body>email-management-worker</body></html>", encoding="utf-8")
         self.settings = Settings(
             frontend_dir=frontend_dir,
             db_path=frontend_dir / "test.sqlite3",
@@ -803,7 +803,7 @@ class BackendAppTestCase(unittest.TestCase):
     def test_generate_two_factor_code_matches_rfc_6238_sha1_vector(self) -> None:
         secret = base64.b32encode(b"12345678901234567890").decode("ascii")
         otpauth = (
-            f"otpauth://totp/JEmail:test@example.com"
+            f"otpauth://totp/EmailManagementWorker:test@example.com"
             f"?secret={secret}&digits=8&period=30&algorithm=SHA1"
         )
 

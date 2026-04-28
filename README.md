@@ -1,6 +1,6 @@
-# jemail
+# email-management-worker
 
-`jemail` 是一个个人邮箱管理工具源码，重点面向 `Outlook / Microsoft 365 / Gmail` 账号的批量导入、管理和查看。
+`email-management-worker` 是一个个人邮箱管理工具源码，重点面向 `Outlook / Microsoft 365 / Gmail` 账号的批量导入、管理和查看。
 
 ## 核心功能
 
@@ -23,8 +23,8 @@
 ## 当前主线代码
 
 - `_figma_source/`：新版 React 前端
-- `jemail-app/`：旧版 Vue 前端
-- `jemail-backend/`：Flask 后端
+- `email-management-app/`：旧版 Vue 前端
+- `email-management-backend/`：Flask 后端
 
 当前实现重点：
 
@@ -66,7 +66,7 @@
 
 - 后端表：`cloud_account_secrets`
 - 加密方式：Fernet 对称加密
-- key 文件：由 `JEMAIL_SENSITIVE_KEY_PATH` 指定，默认在数据库目录下
+- key 文件：由 `EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH` 指定，默认在数据库目录下
 - 前端：设置页登录后可以直接拉取、同步或导出完整资料
 
 ### 本地模式 vs 云端模式
@@ -80,8 +80,9 @@
 
 当前应该优先关注的目录：
 
-- `jemail-app/`：当前前端，Vue 3 + Element Plus + IndexedDB，本地 vendor 资源，无构建步骤也能跑
-- `jemail-backend/`：当前后端，Flask API + Microsoft token 交换 + IMAP/Graph 邮件读取
+- `src/`：Cloudflare Worker 入口，第一版只支持 Microsoft Graph / Gmail API
+- `email-management-app/`：当前前端，Vue 3 + Element Plus + IndexedDB，本地 vendor 资源，无构建步骤也能跑
+- `email-management-backend/`：当前后端，Flask API + Microsoft token 交换 + IMAP/Graph 邮件读取
 - `docs/`：项目说明、架构、开发和部署文档
 - `AGENTS.md`：给 AI / 新接手开发者的快速项目地图
 
@@ -96,7 +97,7 @@
 ### 1. 启动后端
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/jemail-backend
+cd /Volumes/SSD/Email\ Tool/email-management-backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -107,23 +108,23 @@ python app.py
 如果你要本地联调 Gmail OAuth，请在 `.env` 里额外填写：
 
 ```bash
-JEMAIL_GOOGLE_CLIENT_ID=...
-JEMAIL_GOOGLE_CLIENT_SECRET=...
-JEMAIL_GOOGLE_REDIRECT_URI=http://127.0.0.1:8788/api/oauth/google/callback
-JEMAIL_GOOGLE_STATE_SECRET=请填一个随机长字符串
+EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID=...
+EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET=...
+EMAIL_MANAGEMENT_WORKER_GOOGLE_REDIRECT_URI=http://127.0.0.1:8788/api/oauth/google/callback
+EMAIL_MANAGEMENT_WORKER_GOOGLE_STATE_SECRET=请填一个随机长字符串
 ```
 
 如果你要启用第一阶段数据库和登录会话，建议同时填写：
 
 ```bash
-JEMAIL_DB_PATH=/absolute/path/to/jemail.sqlite3
-JEMAIL_SENSITIVE_KEY_PATH=/absolute/path/to/jemail_sensitive_fernet.key
-JEMAIL_AUTH_SESSION_TTL_DAYS=30
-JEMAIL_LOGIN_MAX_FAILED_ATTEMPTS=5
-JEMAIL_LOGIN_RATE_WINDOW_MINUTES=15
-JEMAIL_LOGIN_LOCKOUT_MINUTES=15
-JEMAIL_TURNSTILE_SITE_KEY=
-JEMAIL_TURNSTILE_SECRET_KEY=
+EMAIL_MANAGEMENT_WORKER_DB_PATH=/absolute/path/to/email_management_worker.sqlite3
+EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH=/absolute/path/to/email_management_worker_sensitive_fernet.key
+EMAIL_MANAGEMENT_WORKER_AUTH_SESSION_TTL_DAYS=30
+EMAIL_MANAGEMENT_WORKER_LOGIN_MAX_FAILED_ATTEMPTS=5
+EMAIL_MANAGEMENT_WORKER_LOGIN_RATE_WINDOW_MINUTES=15
+EMAIL_MANAGEMENT_WORKER_LOGIN_LOCKOUT_MINUTES=15
+EMAIL_MANAGEMENT_WORKER_TURNSTILE_SITE_KEY=
+EMAIL_MANAGEMENT_WORKER_TURNSTILE_SECRET_KEY=
 ```
 
 默认监听：
@@ -135,7 +136,37 @@ http://127.0.0.1:8788
 当前本地联调推荐组合：
 
 - 前端：`_figma_source/`
-- 后端：`jemail-backend/`
+- 后端：`email-management-backend/`
+
+### 3. Cloudflare Worker 版本
+
+第一版 Worker 用于一键部署旧版 Vue 前端和最小邮件刷新 API：
+
+- Microsoft：只支持 Graph，不支持 IMAP / O2 fallback
+- Gmail：继续使用 Gmail API
+- 不包含 Flask 版的登录、云端同步和 Google OAuth 回调
+
+本地运行：
+
+```bash
+npm install
+npm run dev
+```
+
+部署：
+
+```bash
+npx wrangler secret put EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET
+npm run deploy
+```
+
+Gmail 账号还需要配置：
+
+```toml
+EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID = "..."
+```
+
+Microsoft Graph 账号继续使用导入数据里的 `client_id + refresh_token`。
 
 ### 2. 打开前端
 
@@ -145,7 +176,7 @@ http://127.0.0.1:8788
 http://127.0.0.1:8788
 ```
 
-因为默认情况下，Flask 会把 `jemail-app/` 当成静态目录一起托管。
+因为默认情况下，Flask 会把 `email-management-app/` 当成静态目录一起托管。
 
 如果你要联调新的 React 前端：
 
@@ -155,14 +186,14 @@ cd /Volumes/SSD/Email\ Tool/_figma_source
 npm run dev
 ```
 
-React 前端默认从当前页面 origin 推断 API；如果你的接口地址不是当前页面 origin，可以通过 `jemail-app/config.js` 或运行时配置指定 `API_BASE`。
+React 前端默认从当前页面 origin 推断 API；如果你的接口地址不是当前页面 origin，可以通过 `email-management-app/config.js` 或运行时配置指定 `API_BASE`。
 
 ## 测试
 
 后端测试：
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/jemail-backend
+cd /Volumes/SSD/Email\ Tool/email-management-backend
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
@@ -210,4 +241,4 @@ Gmail 最少验证：
 - [架构说明](docs/architecture.md)
 - [开发指南](docs/development.md)
 - [运行说明](docs/deployment.md)
-# email-management-worker
+- [Worker 改造事实、分析、结论与建议](docs/worker-strategy.md)

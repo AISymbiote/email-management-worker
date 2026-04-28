@@ -1,6 +1,6 @@
-# jemail Backend
+# email-management-worker Backend
 
-给 `jemail-app` 配套的新后端，目标是：
+给 `email-management-app` 配套的新后端，目标是：
 
 - 同域托管前端静态文件，或作为独立 API 服务使用
 - 提供 `POST /detect-permission`
@@ -13,7 +13,7 @@
 ## 目录
 
 ```text
-jemail-backend/
+email-management-backend/
 ├── app.py
 ├── requirements.txt
 └── backend/
@@ -29,36 +29,36 @@ jemail-backend/
 ## 快速启动
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/jemail-backend
+cd /Volumes/SSD/Email\ Tool/email-management-backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
 
-默认会把 `/Volumes/SSD/Email Tool/jemail-app` 当成前端目录并托管到同源。
+默认会把 `/Volumes/SSD/Email Tool/email-management-app` 当成前端目录并托管到同源。
 
 如果你把前端放在别的地址，也可以只把它当纯 API 服务运行。
 
 ## 环境变量
 
-- `JEMAIL_FRONTEND_DIR`：前端静态目录
-- `JEMAIL_CORS_ORIGIN`：允许跨域的前端来源；如果前后端不在同一地址可按需设置
-- `JEMAIL_IMAP_HOST`：默认 `outlook.office365.com`
-- `JEMAIL_IMAP_PORT`：默认 `993`
-- `JEMAIL_IMAP_TIMEOUT`：默认 `20`
-- `JEMAIL_HTTP_TIMEOUT`：默认 `20`
-- `JEMAIL_MAIL_FETCH_LIMIT`：默认 `50`
-- `JEMAIL_LIVE_TOKEN_URL`：默认 `https://login.live.com/oauth20_token.srf`
-- `JEMAIL_MS_TOKEN_URL`：默认 `https://login.microsoftonline.com/common/oauth2/v2.0/token`
-- `JEMAIL_GRAPH_BASE_URL`：默认 `https://graph.microsoft.com/v1.0`
-- `JEMAIL_GOOGLE_CLIENT_ID`
-- `JEMAIL_GOOGLE_CLIENT_SECRET`
-- `JEMAIL_GOOGLE_REDIRECT_URI`
-- `JEMAIL_GOOGLE_AUTH_URL`：默认 `https://accounts.google.com/o/oauth2/v2/auth`
-- `JEMAIL_GOOGLE_TOKEN_URL`：默认 `https://oauth2.googleapis.com/token`
-- `JEMAIL_GMAIL_API_BASE_URL`：默认 `https://gmail.googleapis.com/gmail/v1`
-- `JEMAIL_GOOGLE_STATE_SECRET`：Google OAuth state 签名密钥；不填时回退到 `JEMAIL_GOOGLE_CLIENT_SECRET`
+- `EMAIL_MANAGEMENT_WORKER_FRONTEND_DIR`：前端静态目录
+- `EMAIL_MANAGEMENT_WORKER_CORS_ORIGIN`：允许跨域的前端来源；如果前后端不在同一地址可按需设置
+- `EMAIL_MANAGEMENT_WORKER_IMAP_HOST`：默认 `outlook.office365.com`
+- `EMAIL_MANAGEMENT_WORKER_IMAP_PORT`：默认 `993`
+- `EMAIL_MANAGEMENT_WORKER_IMAP_TIMEOUT`：默认 `20`
+- `EMAIL_MANAGEMENT_WORKER_HTTP_TIMEOUT`：默认 `20`
+- `EMAIL_MANAGEMENT_WORKER_MAIL_FETCH_LIMIT`：默认 `50`
+- `EMAIL_MANAGEMENT_WORKER_LIVE_TOKEN_URL`：默认 `https://login.live.com/oauth20_token.srf`
+- `EMAIL_MANAGEMENT_WORKER_MS_TOKEN_URL`：默认 `https://login.microsoftonline.com/common/oauth2/v2.0/token`
+- `EMAIL_MANAGEMENT_WORKER_GRAPH_BASE_URL`：默认 `https://graph.microsoft.com/v1.0`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_REDIRECT_URI`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_AUTH_URL`：默认 `https://accounts.google.com/o/oauth2/v2/auth`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_TOKEN_URL`：默认 `https://oauth2.googleapis.com/token`
+- `EMAIL_MANAGEMENT_WORKER_GMAIL_API_BASE_URL`：默认 `https://gmail.googleapis.com/gmail/v1`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_STATE_SECRET`：Google OAuth state 签名密钥；不填时回退到 `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET`
 
 ## 接口
 

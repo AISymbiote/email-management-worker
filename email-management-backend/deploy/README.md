@@ -8,7 +8,7 @@
 
 - `provision-ubuntu-ec2.sh`：在远端环境安装依赖并写入服务配置
 - `push-to-ec2.sh`：从本地同步代码到远端并执行 provision
-- `jemail-backend.service`：服务模板
+- `email-management-backend.service`：服务模板
 - `nginx-api.conf`：反向代理模板
 
 ## 提示

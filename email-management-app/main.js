@@ -4,13 +4,13 @@ const { ElMessage, ElMessageBox } = ElementPlus;
 
 // API 基础地址
 // 优先级：
-// 1. window.JEMAIL_CONFIG.API_BASE
+// 1. window.EMAIL_MANAGEMENT_WORKER_CONFIG.API_BASE
 // 2. 当前 origin（本地或同源部署）
 function normalizeApiBase(value) {
     return (value || '').replace(/\/+$/, '');
 }
 
-const runtimeConfig = window.JEMAIL_CONFIG || {};
+const runtimeConfig = window.EMAIL_MANAGEMENT_WORKER_CONFIG || {};
 const inferredApiBase = window.location.origin;
 const API_BASE = normalizeApiBase(runtimeConfig.API_BASE) || normalizeApiBase(inferredApiBase);
 
@@ -1198,14 +1198,15 @@ const app = createApp({
                 });
 
                 if (!response.ok) {
-                    console.error(`权限检测失败: HTTP ${response.status}`);
-                    return { success: false, token_type: 'unknown', use_local_ip: false };
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error(`权限检测失败: HTTP ${response.status}`, errorData);
+                    return { success: false, token_type: 'unsupported_graph', use_local_ip: false };
                 }
 
                 const data = await response.json();
 
                 if (!data.success) {
-                    return { success: false, token_type: 'unknown', use_local_ip: false };
+                    return { success: false, token_type: data.error_type === 'unsupported_graph' ? 'unsupported_graph' : 'unknown', use_local_ip: false };
                 }
 
                 return {
@@ -1404,13 +1405,13 @@ const app = createApp({
                     // 注意：不刷新列表UI，避免跳动。用户关闭对话框后会自然看到更新
                 }
 
-                // 统一通过后端API调用（后端会根据token_type智能路由）
+                // 统一通过后端API调用。Cloudflare Worker 版 Microsoft 账号仅支持 Graph，不再回退 IMAP。
                 const response = await axios.post(`${API_BASE}/api/emails/refresh`, {
                     email_address: this.currentEmail,
                     client_id: client_id,
                     refresh_token: 刷新令牌,
                     folder: this.currentFolder,
-                    token_type: 令牌类型 || 'imap',  // 传递令牌类型给后端
+                    token_type: 令牌类型 || 'graph',
                     provider: provider || 'microsoft'
                 });
 

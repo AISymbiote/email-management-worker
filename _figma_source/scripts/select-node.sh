@@ -12,8 +12,8 @@ is_codex_node() {
 }
 
 choose_node() {
-  if is_executable "${JEMAIL_NODE_BIN:-}"; then
-    printf '%s\n' "$JEMAIL_NODE_BIN"
+  if is_executable "${EMAIL_MANAGEMENT_WORKER_NODE_BIN:-}"; then
+    printf '%s\n' "$EMAIL_MANAGEMENT_WORKER_NODE_BIN"
     return 0
   fi
 
@@ -52,6 +52,6 @@ choose_node() {
 }
 
 if ! choose_node; then
-  echo "未找到可用的 Node.js。请先安装 Homebrew Node 或 nvm Node，或设置 JEMAIL_NODE_BIN。" >&2
+  echo "未找到可用的 Node.js。请先安装 Homebrew Node 或 nvm Node，或设置 EMAIL_MANAGEMENT_WORKER_NODE_BIN。" >&2
   exit 1
 fi

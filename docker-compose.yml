@@ -1,5 +1,5 @@
 # Legacy Nextcloud stack kept only for historical reference.
-# Current production stack uses jemail-app + jemail-backend instead.
+# Current production stack uses email-management-app + email-management-backend instead.
 services:
   db:
     image: mariadb:11.4

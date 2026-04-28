@@ -12,7 +12,7 @@
 ### 后端
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/jemail-backend
+cd /Volumes/SSD/Email\ Tool/email-management-backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -30,7 +30,7 @@ http://127.0.0.1:8788
 
 默认不需要额外启动 dev server。
 
-因为 Flask 会把 `jemail-app/` 作为静态目录一起托管，所以直接访问：
+因为 Flask 会把 `email-management-app/` 作为静态目录一起托管，所以直接访问：
 
 ```text
 http://127.0.0.1:8788
@@ -38,8 +38,8 @@ http://127.0.0.1:8788
 
 如果你一定要独立起静态站点，也可以用任意静态文件服务器，但要确认：
 
-- `jemail-app/config.js` 的 `API_BASE`
-- 后端的 `JEMAIL_CORS_ORIGIN`
+- `email-management-app/config.js` 的 `API_BASE`
+- 后端的 `EMAIL_MANAGEMENT_WORKER_CORS_ORIGIN`
 
 当前实际本地联调推荐前端是 `_figma_source/`：
 
@@ -62,30 +62,30 @@ npm run dev
 
 ## 环境变量
 
-推荐在 `jemail-backend/.env` 中配置：
+推荐在 `email-management-backend/.env` 中配置：
 
-- `JEMAIL_CORS_ORIGIN`
-- `JEMAIL_MAIL_FETCH_LIMIT`
+- `EMAIL_MANAGEMENT_WORKER_CORS_ORIGIN`
+- `EMAIL_MANAGEMENT_WORKER_MAIL_FETCH_LIMIT`
 - `PORT`
-- `JEMAIL_FRONTEND_DIR`
-- `JEMAIL_DB_PATH`
-- `JEMAIL_SENSITIVE_KEY_PATH`
-- `JEMAIL_AUTH_SESSION_TTL_DAYS`
-- `JEMAIL_LOGIN_MAX_FAILED_ATTEMPTS`
-- `JEMAIL_LOGIN_RATE_WINDOW_MINUTES`
-- `JEMAIL_LOGIN_LOCKOUT_MINUTES`
-- `JEMAIL_TURNSTILE_SITE_KEY`
-- `JEMAIL_TURNSTILE_SECRET_KEY`
-- `JEMAIL_IMAP_TIMEOUT`
-- `JEMAIL_HTTP_TIMEOUT`
-- `JEMAIL_GOOGLE_CLIENT_ID`
-- `JEMAIL_GOOGLE_CLIENT_SECRET`
-- `JEMAIL_GOOGLE_REDIRECT_URI`
-- `JEMAIL_GOOGLE_STATE_SECRET`
+- `EMAIL_MANAGEMENT_WORKER_FRONTEND_DIR`
+- `EMAIL_MANAGEMENT_WORKER_DB_PATH`
+- `EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH`
+- `EMAIL_MANAGEMENT_WORKER_AUTH_SESSION_TTL_DAYS`
+- `EMAIL_MANAGEMENT_WORKER_LOGIN_MAX_FAILED_ATTEMPTS`
+- `EMAIL_MANAGEMENT_WORKER_LOGIN_RATE_WINDOW_MINUTES`
+- `EMAIL_MANAGEMENT_WORKER_LOGIN_LOCKOUT_MINUTES`
+- `EMAIL_MANAGEMENT_WORKER_TURNSTILE_SITE_KEY`
+- `EMAIL_MANAGEMENT_WORKER_TURNSTILE_SECRET_KEY`
+- `EMAIL_MANAGEMENT_WORKER_IMAP_TIMEOUT`
+- `EMAIL_MANAGEMENT_WORKER_HTTP_TIMEOUT`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_REDIRECT_URI`
+- `EMAIL_MANAGEMENT_WORKER_GOOGLE_STATE_SECRET`
 
 完整示例见：
 
-- `jemail-backend/.env.example`
+- `email-management-backend/.env.example`
 
 ## 常见开发入口
 
@@ -111,25 +111,25 @@ npm run dev
 
 - `_figma_source/src/stores/auth-store.ts`
 - `_figma_source/src/components/auth/AuthPanel.tsx`
-- `jemail-backend/backend/db.py`
-- `jemail-backend/backend/app.py`
+- `email-management-backend/backend/db.py`
+- `email-management-backend/backend/app.py`
 
 ### 改权限检测或邮件拉取
 
 优先看：
 
-- `jemail-backend/backend/app.py`
-- `jemail-backend/backend/google.py`
-- `jemail-backend/backend/microsoft.py`
-- `jemail-backend/backend/mail.py`
-- `jemail-backend/backend/models.py`
+- `email-management-backend/backend/app.py`
+- `email-management-backend/backend/google.py`
+- `email-management-backend/backend/microsoft.py`
+- `email-management-backend/backend/mail.py`
+- `email-management-backend/backend/models.py`
 
 ## 测试
 
 ### 后端单测
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/jemail-backend
+cd /Volumes/SSD/Email\ Tool/email-management-backend
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
@@ -150,7 +150,7 @@ cd /Volumes/SSD/Email\ Tool/jemail-backend
 
 1. Google Cloud Console 已启用 Gmail API
 2. OAuth consent screen 已配置，测试账号已加入 Test Users
-3. `JEMAIL_GOOGLE_REDIRECT_URI` 与 Google OAuth Client 配置完全一致
+3. `EMAIL_MANAGEMENT_WORKER_GOOGLE_REDIRECT_URI` 与 Google OAuth Client 配置完全一致
 4. `provider=google` 且无 token 的账号显示“未授权”
 5. 点击“绑定 Gmail”后能成功回写 refresh token
 6. Gmail `收件箱` 和 `垃圾邮件` 都能打开
@@ -184,7 +184,7 @@ cd /Volumes/SSD/Email\ Tool/jemail-backend
 
 ### 不要误删 vendor 资源
 
-`jemail-app/libs/` 下的文件现在是前端运行必需品。
+`email-management-app/libs/` 下的文件现在是前端运行必需品。
 
 ## 推荐工作流
 

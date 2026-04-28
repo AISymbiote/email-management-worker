@@ -17,7 +17,7 @@ declare global {
   }
 }
 
-const TURNSTILE_SCRIPT_ID = 'jemail-turnstile-script'
+const TURNSTILE_SCRIPT_ID = 'email-management-worker-turnstile-script'
 
 function loadTurnstileScript(): Promise<void> {
   if (window.turnstile) {

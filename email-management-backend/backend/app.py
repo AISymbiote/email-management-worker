@@ -47,7 +47,7 @@ from .models import (
 from .twofa import generate_two_factor_code
 from .turnstile import is_turnstile_enabled, verify_turnstile_token
 
-AUTH_COOKIE_NAME = "jemail_session"
+AUTH_COOKIE_NAME = "email_management_worker_session"
 
 
 def create_app(settings: Settings | None = None) -> Flask:
@@ -55,7 +55,7 @@ def create_app(settings: Settings | None = None) -> Flask:
     initialize_database(settings)
     app = Flask(__name__, static_folder=None)
     app.config["JSON_AS_ASCII"] = False
-    app.config["JEMAIL_SETTINGS"] = settings
+    app.config["EMAIL_MANAGEMENT_WORKER_SETTINGS"] = settings
 
     @app.after_request
     def add_security_headers(response):
@@ -112,7 +112,7 @@ def create_app(settings: Settings | None = None) -> Flask:
         return response
 
     def serve_frontend_asset(asset_path: str = "index.html"):
-        frontend_dir = Path(app.config["JEMAIL_SETTINGS"].frontend_dir)
+        frontend_dir = Path(app.config["EMAIL_MANAGEMENT_WORKER_SETTINGS"].frontend_dir)
         target = frontend_dir / asset_path
         if asset_path != "index.html" and target.is_file():
             return send_from_directory(frontend_dir, asset_path)

@@ -1,5 +1,5 @@
 [Unit]
-Description=jemail Backend
+Description=email-management-worker Backend
 After=network.target
 
 [Service]

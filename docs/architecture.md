@@ -2,7 +2,7 @@
 
 ## 目标
 
-`jemail` 不是传统邮件服务器，也不是完整企业协作套件。
+`email-management-worker` 不是传统邮件服务器，也不是完整企业协作套件。
 
 它的定位是：
 
@@ -15,8 +15,8 @@
 
 ```mermaid
 flowchart LR
-    Browser["Browser / jemail-app"] --> IndexedDB["IndexedDB<br/>accounts + emails cache"]
-    Browser --> API["Flask API / jemail-backend"]
+    Browser["Browser / email-management-app"] --> IndexedDB["IndexedDB<br/>accounts + emails cache"]
+    Browser --> API["Flask API / email-management-backend"]
     API --> SQLite["SQLite<br/>users + user_profiles + auth_sessions + cloud_accounts + cloud_account_secrets"]
     API --> Token["Microsoft token endpoint"]
     API --> IMAP["Outlook IMAP XOAUTH2"]
@@ -29,7 +29,7 @@ flowchart LR
 
 前端目录：
 
-- `jemail-app/`：旧版 Vue 本地优先前端
+- `email-management-app/`：旧版 Vue 本地优先前端
 - `_figma_source/`：当前新版 React 前端
 
 特点：
@@ -41,7 +41,7 @@ flowchart LR
 
 ### 本地数据模型
 
-`jemail-app/db.js` 里有两个核心 object store：
+`email-management-app/db.js` 里有两个核心 object store：
 
 - `accounts`
 - `emails`
@@ -66,7 +66,7 @@ flowchart LR
 
 ## 后端
 
-后端目录：`jemail-backend/`
+后端目录：`email-management-backend/`
 
 技术栈：
 
@@ -129,7 +129,7 @@ SQLite 当前包含这些核心表：
 如果需要跨设备管理完整资料，必须走单独的完整凭据接口：
 
 - 需要 Bearer 登录态
-- 服务端用 `JEMAIL_SENSITIVE_KEY_PATH` 对应的 Fernet key 解密或加密
+- 服务端用 `EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH` 对应的 Fernet key 解密或加密
 - 返回到前端后会写入当前浏览器 IndexedDB，方便继续本地管理和导出
 
 ### 核心接口
@@ -265,7 +265,7 @@ Gmail 新增支持明确采用：
 
 前端运行时会优先使用：
 
-- `window.JEMAIL_CONFIG.API_BASE`
+- `window.EMAIL_MANAGEMENT_WORKER_CONFIG.API_BASE`
 - 否则回退到当前页面 origin
 
 ## 遗留代码说明
