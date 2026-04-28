@@ -103,11 +103,29 @@
                         <p>管理您的所有邮箱账号</p>
                     </div>
                     <div class="header-actions">
-                        <el-button circle>
-                            <el-icon><Bell /></el-icon>
-                        </el-button>
-                        <el-button circle>
+                        <el-tag :type="isLoggedIn ? 'success' : 'info'" effect="plain">
+                            {{ cloudStatusText }}
+                        </el-tag>
+                        <el-dropdown v-if="isLoggedIn" @command="handleUserCommand">
+                            <el-button type="primary" plain>
+                                <el-icon><User /></el-icon>
+                                {{ authUser.email }}
+                                <el-icon class="el-icon--right"><Bottom /></el-icon>
+                            </el-button>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item command="sync">
+                                        立即同步账号
+                                    </el-dropdown-item>
+                                    <el-dropdown-item command="logout" divided>
+                                        退出登录
+                                    </el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
+                        <el-button v-else-if="authAvailable" type="primary" @click="openAuthDialog('login')">
                             <el-icon><User /></el-icon>
+                            登录/注册
                         </el-button>
                     </div>
                 </div>
@@ -406,6 +424,51 @@
             </el-main>
         </el-container>
 
+        <!-- 登录 / 注册对话框 -->
+        <el-dialog
+            v-model="authDialogVisible"
+            :title="authMode === 'register' ? '注册账号' : '登录账号'"
+            width="420px"
+            align-center
+        >
+            <el-alert
+                title="未登录时账号只保存在当前浏览器；登录后会自动加密同步账号资料，邮件内容不会上传云端。"
+                type="info"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 18px;"
+            />
+            <el-form label-width="70px" @submit.prevent>
+                <el-form-item label="邮箱">
+                    <el-input v-model="authForm.email" placeholder="用于登录同步的邮箱" autocomplete="username" />
+                </el-form-item>
+                <el-form-item label="密码">
+                    <el-input
+                        v-model="authForm.password"
+                        type="password"
+                        placeholder="至少 8 位"
+                        show-password
+                        autocomplete="current-password"
+                        @keyup.enter="submitAuth"
+                    />
+                </el-form-item>
+            </el-form>
+            <div class="auth-mode-switch">
+                <el-link v-if="authMode === 'login'" type="primary" @click="authMode = 'register'">
+                    没有账号？立即注册
+                </el-link>
+                <el-link v-else type="primary" @click="authMode = 'login'">
+                    已有账号？返回登录
+                </el-link>
+            </div>
+            <template #footer>
+                <el-button @click="authDialogVisible = false">取消</el-button>
+                <el-button type="primary" :loading="authLoading" @click="submitAuth">
+                    {{ authMode === 'register' ? '注册并登录' : '登录' }}
+                </el-button>
+            </template>
+        </el-dialog>
+
         <!-- 邮件查看对话框 - 左右分栏布局 -->
         <el-dialog
             v-model="emailDialogVisible"
@@ -542,11 +605,11 @@
                    <div style="margin-bottom: 15px; color: #606266; font-size: 14px;">
                        <div style="margin-bottom: 10px;">支持的格式（每行一个账号）：</div>
                        <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
-                           <li style="font-family: 'Courier New', monospace;">邮箱地址    密码    Client ID    刷新令牌    provider(可选)</li>
-                           <li style="font-family: 'Courier New', monospace;">邮箱地址----密码----Client ID----刷新令牌----provider(可选)</li>
+                           <li style="font-family: 'Courier New', monospace;">邮箱地址    密码    Client ID    刷新令牌</li>
+                           <li style="font-family: 'Courier New', monospace;">邮箱地址----密码----Client ID----刷新令牌</li>
                        </ul>
                        <div style="margin-top: 8px; color: #909399; font-size: 13px;">
-                           提示：Microsoft 账号保持原 4 字段格式；Gmail 可省略 Client ID，但需要刷新令牌，provider 可填 google
+                           提示：当前主推 Microsoft Graph 邮件读取，请填写 Client ID 和刷新令牌
                        </div>
                    </div>
 
@@ -554,7 +617,7 @@
                        v-model="importText"
                        type="textarea"
                        :rows="12"
-                       placeholder="请粘贴账号信息，每行一个账号&#10;例如：&#10;user@example.com    password123    client_id    refresh_token&#10;user@gmail.com----pass456--------google_refresh_token----google"
+                       placeholder="请粘贴账号信息，每行一个账号&#10;例如：&#10;user@example.com    password123    client_id    refresh_token&#10;user@example.com----password123----client_id----refresh_token"
                        style="font-family: monospace;"
                    />
 
@@ -581,7 +644,7 @@
                             <div class="el-upload__tip" style="line-height: 1.8;">
                                 支持 .txt、.xlsx、.xls 格式<br/>
                                 TXT格式：每行一个账号（Tab或----分隔）<br/>
-                                Excel格式：第1列邮箱，第2列密码，第3列ClientID，第4列刷新令牌，第5列过期时间，第6列分组，第7列provider（可选）<br/>
+                                Excel格式：第1列邮箱，第2列密码，第3列ClientID，第4列刷新令牌，第5列过期时间，第6列分组<br/>
                                 <span style="color: #67c23a;">✓ 导入后将按文件中的顺序显示</span>
                             </div>
                         </template>

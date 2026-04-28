@@ -1,244 +1,157 @@
 # email-management-worker
+无需服务器，无需域名，可以一键部署到 Cloudflare Worker 的个人邮箱管理工具。你可以批量导入 Microsoft 邮箱账号，在网页里分组管理，并按需在线查看收件箱或垃圾邮件。
 
-`email-management-worker` 是一个个人邮箱管理工具源码，重点面向 `Outlook / Microsoft 365 / Gmail` 账号的批量导入、管理和查看。
+## 选择你的部署方式
 
-## 核心功能
+- **极简部署**：适合只在一台电脑或一个浏览器里使用，不需要创建 D1 数据库，也不需要设置登录相关 Secret；账号资料只保存在当前浏览器的 IndexedDB，邮件内容只在线读取，不保存到云端。
+- **完整部署**：适合希望跨浏览器或跨设备恢复账号资料的使用方式，需要创建 D1 数据库并设置登录与加密 Secret；启用后支持注册、登录和自动同步，敏感凭据会加密后保存到 D1，但邮件内容仍然不会保存到云端。
 
-- 批量导入并管理 Outlook / Gmail 邮箱账号
-- 接收并查看邮箱信息，支持收件箱和垃圾邮件
-- 支持 Google 账号一键绑定，并生成 2FA 动态码
-- 支持账号分组管理、筛选和批量操作
-- 支持登录后同步完整账号资料，方便跨设备使用
+## 快速开始
 
-## 项目定位
+### 极简部署
 
-这个仓库是源码分享，不是邮件服务平台，也不是企业协作套件。
-
-它更适合：
-
-- 个人自用
-- 自行修改
-- 二次开发
-
-## 当前主线代码
-
-- `_figma_source/`：新版 React 前端
-- `email-management-app/`：旧版 Vue 前端
-- `email-management-backend/`：Flask 后端
-
-当前实现重点：
-
-- 浏览器本地管理邮箱账号和分组
-- 后端按需刷新 Microsoft / Google 令牌并拉取邮件
-- Gmail 走官方 OAuth + Gmail API
-- 完整账号资料支持登录后同步和恢复
-
-## 第一阶段已落地
-
-- 注册 / 登录 / 退出登录
-- SQLite 用户库
-- 用户级会话鉴权与数据隔离
-- 完整账号资料同步
-- 新版 React 前端基础可用布局
-
-### 会上云的数据
-
-- 邮箱地址
-- provider
-- 分组
-- 状态
-- 备注
-- oauth_status
-- oauth_email
-- oauth_updated_at
-- 导入序号
-
-### 默认不会进入普通同步接口的数据
-
-- 邮箱密码
-- Outlook refresh token
-- Gmail refresh token
-- 2FA / 辅助邮箱
-- `client_id`
-- 邮件正文和缓存邮件
-
-这些字段如果需要跨设备管理，必须走“完整账号资料”接口：
-
-- 后端表：`cloud_account_secrets`
-- 加密方式：Fernet 对称加密
-- key 文件：由 `EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH` 指定，默认在数据库目录下
-- 前端：设置页登录后可以直接拉取、同步或导出完整资料
-
-### 本地模式 vs 云端模式
-
-- 未登录：继续按原来方式只用本地 IndexedDB
-- 已登录：可以把普通资料同步到云端，并在新设备登录后拉回本地查看列表
-- 已登录：可以把完整凭据加密同步到服务器，或拉取回当前设备本地 IndexedDB
-- 普通列表接口不会返回完整凭据；需要完整资料时走 `/api/cloud/secrets/unlock`
-
-## 仓库结构
-
-当前应该优先关注的目录：
-
-- `src/`：Cloudflare Worker 入口，第一版只支持 Microsoft Graph / Gmail API
-- `email-management-app/`：当前前端，Vue 3 + Element Plus + IndexedDB，本地 vendor 资源，无构建步骤也能跑
-- `email-management-backend/`：当前后端，Flask API + Microsoft token 交换 + IMAP/Graph 邮件读取
-- `docs/`：项目说明、架构、开发和部署文档
-- `AGENTS.md`：给 AI / 新接手开发者的快速项目地图
-
-下面这些目录或文件是历史遗留，不是当前生产主线：
-
-- `outlook-manager/`：更早期的轻量原型
-- `docker-compose.yml`、根目录 `.env.example`：更早期的 Nextcloud 方案残留
-- `server-backups/`：服务器拉回来的备份，不纳入 Git
-
-## 本地开发
-
-### 1. 启动后端
-
-```bash
-cd /Volumes/SSD/Email\ Tool/email-management-backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python app.py
-```
-
-如果你要本地联调 Gmail OAuth，请在 `.env` 里额外填写：
-
-```bash
-EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID=...
-EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET=...
-EMAIL_MANAGEMENT_WORKER_GOOGLE_REDIRECT_URI=http://127.0.0.1:8788/api/oauth/google/callback
-EMAIL_MANAGEMENT_WORKER_GOOGLE_STATE_SECRET=请填一个随机长字符串
-```
-
-如果你要启用第一阶段数据库和登录会话，建议同时填写：
-
-```bash
-EMAIL_MANAGEMENT_WORKER_DB_PATH=/absolute/path/to/email_management_worker.sqlite3
-EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH=/absolute/path/to/email_management_worker_sensitive_fernet.key
-EMAIL_MANAGEMENT_WORKER_AUTH_SESSION_TTL_DAYS=30
-EMAIL_MANAGEMENT_WORKER_LOGIN_MAX_FAILED_ATTEMPTS=5
-EMAIL_MANAGEMENT_WORKER_LOGIN_RATE_WINDOW_MINUTES=15
-EMAIL_MANAGEMENT_WORKER_LOGIN_LOCKOUT_MINUTES=15
-EMAIL_MANAGEMENT_WORKER_TURNSTILE_SITE_KEY=
-EMAIL_MANAGEMENT_WORKER_TURNSTILE_SECRET_KEY=
-```
-
-默认监听：
-
-```text
-http://127.0.0.1:8788
-```
-
-当前本地联调推荐组合：
-
-- 前端：`_figma_source/`
-- 后端：`email-management-backend/`
-
-### 3. Cloudflare Worker 版本
-
-第一版 Worker 用于一键部署旧版 Vue 前端和最小邮件刷新 API：
-
-- Microsoft：只支持 Graph，不支持 IMAP / O2 fallback
-- Gmail：继续使用 Gmail API
-- 不包含 Flask 版的登录、云端同步和 Google OAuth 回调
-
-本地运行：
+1. 安装依赖：
 
 ```bash
 npm install
+```
+
+2. 本地预览：
+
+```bash
 npm run dev
 ```
 
-部署：
+3. 部署：
 
 ```bash
-npx wrangler secret put EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET
 npm run deploy
 ```
 
-Gmail 账号还需要配置：
+极简部署不需要修改 `wrangler.toml` 里的 D1 示例块，保持注释即可。
+
+### 完整部署
+
+1. 安装依赖：
+
+```bash
+npm install
+```
+
+2. 创建 D1 数据库：
+
+```bash
+npx wrangler d1 create email-management-worker-db
+```
+
+3. 把返回的 `database_id` 填入 `wrangler.toml`，并取消 D1 配置块的注释：
 
 ```toml
-EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID = "..."
+[[d1_databases]]
+binding = "DB"
+database_name = "email-management-worker-db"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 ```
 
-Microsoft Graph 账号继续使用导入数据里的 `client_id + refresh_token`。
+4. 初始化数据库表：
 
-### 2. 打开前端
+```bash
+npx wrangler d1 migrations apply email-management-worker-db --remote
+```
 
-后端启动后，直接访问：
+5. 设置登录和加密所需 Secret：
+
+```bash
+npx wrangler secret put EMAIL_MANAGEMENT_WORKER_SESSION_SECRET
+npx wrangler secret put EMAIL_MANAGEMENT_WORKER_ENCRYPTION_SECRET
+```
+
+6. 部署：
+
+```bash
+npm run deploy
+```
+
+## 自定义域名（可选）
+
+默认会部署到 `workers.dev`。
+
+如果你要绑定自己的域名，只需要修改 `wrangler.toml` 中的自定义域名示例块：
+
+```toml
+[[routes]]
+pattern = "mail.example.com"
+custom_domain = true
+```
+
+域名需要已经托管在当前 Cloudflare account 下。
+
+## 怎么使用
+
+1. 打开部署后的网页。
+2. 点击“导入邮箱”。
+3. 按每行一个账号粘贴数据：
 
 ```text
-http://127.0.0.1:8788
+邮箱地址----密码----Client ID----刷新令牌
 ```
 
-因为默认情况下，Flask 会把 `email-management-app/` 当成静态目录一起托管。
+4. 导入后可以分组、搜索、批量复制或删除。
+5. 点击账号右侧“查看”在线读取邮件。
+6. 如果你使用完整部署，可以先注册/登录；登录后账号资料会自动同步。
 
-如果你要联调新的 React 前端：
+## 从极简部署升级到完整部署
+
+可以从极简部署升级到完整部署；升级不会主动清空云端或本地数据。但浏览器本地账号是否保留，取决于你是否继续使用同一个访问地址、同一个浏览器，以及是否清理过站点数据。升级前建议先导出备份。
+
+## 数据和隐私说明
+
+### 极简部署
+
+- 账号资料只保存在当前浏览器
+- 换浏览器或清空站点数据后，本地账号资料会消失
+- 云端不保存账号资料
+
+### 完整部署
+
+会同步到 D1 的普通资料包括：
+
+- 邮箱地址
+- 分组
+- 状态
+- 备注
+- 导入序号
+- 邮件读取相关的状态信息
+
+会加密后同步到 D1 的敏感资料包括：
+
+- 邮箱密码
+- Client ID
+- 刷新令牌
+- token 过期时间
+- 辅助邮箱
+- 2FA secret
+
+不会保存到云端的内容：
+
+- 邮件标题
+- 发件人
+- 邮件正文
+- 邮件预览
+- 附件
+- 邮件列表缓存
+
+## 常用命令
 
 ```bash
-cd /Volumes/SSD/Email\ Tool/_figma_source
-./scripts/npm.sh install
-npm run dev
+npm run dev          # 本地预览
+npm run check        # 检查代码
+npm run deploy       # 部署
 ```
 
-React 前端默认从当前页面 origin 推断 API；如果你的接口地址不是当前页面 origin，可以通过 `email-management-app/config.js` 或运行时配置指定 `API_BASE`。
+## 当前限制
 
-## 测试
-
-后端测试：
-
-```bash
-cd /Volumes/SSD/Email\ Tool/email-management-backend
-.venv/bin/python -m unittest discover -s tests -v
-```
-
-前端没有独立打包步骤，主要依赖浏览器验证和接口联调。
-
-新版 React 前端构建：
-
-```bash
-cd /Volumes/SSD/Email\ Tool/_figma_source
-./scripts/npm.sh install
-npm run build
-```
-
-Gmail 最少验证：
-
-1. 导入 `provider=google` 的库存账号
-2. 列表显示“未授权”
-3. 点击“绑定 Gmail”并完成 Google OAuth
-4. 成功读取 `收件箱` 和 `垃圾邮件`
-
-注意：
-
-- Google OAuth consent screen 处于 Testing 状态时，refresh token 可能在 7 天后失效
-- 这不是代码缺陷，而是 Google 测试模式限制
-
-## 运行说明
-
-仓库主要提供：
-
-1. 本地运行方式
-- 直接启动 Flask
-- 旧版前端可由 Flask 托管
-- 新版 React 前端可用 `npm run dev` 联调
-
-2. 必要环境变量说明
-- 数据库路径
-- Google OAuth 配置
-- 接口地址配置
-
-具体服务器部署方式不在公开文档里展开，按你自己的环境处理即可。
-
-## 进一步阅读
-
-- [AI 接手说明](AGENTS.md)
-- [架构说明](docs/architecture.md)
-- [开发指南](docs/development.md)
-- [运行说明](docs/deployment.md)
-- [Worker 改造事实、分析、结论与建议](docs/worker-strategy.md)
+- 当前主推 Microsoft Graph 邮件读取
+- Graph 不可用的账号无法在 Worker 版中读取邮件
+- 极简部署没有登录和云同步
+- 完整部署需要正确配置 D1 和 Secret

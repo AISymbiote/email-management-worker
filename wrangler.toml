@@ -7,6 +7,30 @@ directory = "./email-management-app"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 
+# -----------------------------------------------------------------------------
+# 自定义域名（可选）
+#
+# 默认部署到 workers.dev。需要自定义域名时，确认域名已托管在当前
+# Cloudflare account 下，然后取消下面“整块示例配置”的注释并替换域名。
+# -----------------------------------------------------------------------------
+# [[routes]]
+# pattern = "mail.example.com"
+# custom_domain = true
+
+
+# -----------------------------------------------------------------------------
+# D1 数据库（完整部署才需要）
+#
+# 极简部署：保持下面整块示例配置为注释状态。
+# 完整部署：按 README 创建并初始化 D1 后，填入 database_id，
+# 然后取消下面整块示例配置的注释。
+# -----------------------------------------------------------------------------
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "email-management-worker-db"
+# database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+
 [vars]
 EMAIL_MANAGEMENT_WORKER_CORS_ORIGIN = ""
 EMAIL_MANAGEMENT_WORKER_HTTP_TIMEOUT = "20"
@@ -14,7 +38,3 @@ EMAIL_MANAGEMENT_WORKER_MAIL_FETCH_LIMIT = "20"
 EMAIL_MANAGEMENT_WORKER_LIVE_TOKEN_URL = "https://login.live.com/oauth20_token.srf"
 EMAIL_MANAGEMENT_WORKER_MS_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 EMAIL_MANAGEMENT_WORKER_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
-EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID = ""
-EMAIL_MANAGEMENT_WORKER_GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-EMAIL_MANAGEMENT_WORKER_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-EMAIL_MANAGEMENT_WORKER_GMAIL_API_BASE_URL = "https://gmail.googleapis.com/gmail/v1"

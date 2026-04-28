@@ -35,7 +35,7 @@ npm run dev
 
 ## Cloudflare Worker 版本
 
-Worker 版本用于一键部署 `email-management-app/` 静态前端和最小邮件刷新 API。
+Worker 版本用于一键部署 `email-management-app/` 静态前端、邮件刷新 API，以及 D1 登录/账号云同步 API。
 
 ```bash
 npm install
@@ -43,13 +43,36 @@ npm run dev
 npm run deploy
 ```
 
-第一版限制：
+部署前先创建并绑定 D1：
+
+```bash
+npx wrangler d1 create email-management-worker-db
+```
+
+把命令返回的 `database_id` 填入 `wrangler.toml` 的 `[[d1_databases]]` 示例块并取消注释，然后执行迁移：
+
+```bash
+npx wrangler d1 migrations apply email-management-worker-db --remote
+```
+
+必须设置的 Worker secrets：
+
+```bash
+npx wrangler secret put EMAIL_MANAGEMENT_WORKER_SESSION_SECRET
+npx wrangler secret put EMAIL_MANAGEMENT_WORKER_ENCRYPTION_SECRET
+```
+
+Worker 版边界：
 
 - Microsoft 只走 Graph；Graph 不可用时不会回退 IMAP
 - Gmail 走 Gmail API，需要配置 `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_ID` 和 secret `EMAIL_MANAGEMENT_WORKER_GOOGLE_CLIENT_SECRET`
-- 不包含 Flask 版登录、云端同步、Google OAuth 回调等接口
+- D1 只保存用户、会话、账号普通资料和加密凭据
+- 不创建邮件表；邮件 subject/from/body/附件不会写入 D1/KV/云端
+- 暂不包含 Flask 版 Google OAuth 回调接口
 
-## 常用环境变量
+自定义域名：默认使用 `workers.dev`。如果要绑定自己的域名，在 `wrangler.toml` 里取消 `routes` 示例注释并替换为你的域名；该域名必须已经托管在当前 Cloudflare account 下。
+
+## Flask 版常用环境变量
 
 - `EMAIL_MANAGEMENT_WORKER_DB_PATH`：SQLite 数据库文件路径
 - `EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH`：完整账号资料加密 key 文件路径
@@ -66,8 +89,11 @@ npm run deploy
 - `EMAIL_MANAGEMENT_WORKER_GOOGLE_STATE_SECRET`
 - `EMAIL_MANAGEMENT_WORKER_CORS_ORIGIN`：如果前后端不在同一地址，可按需设置
 
-Worker 版本还会读取：
+Worker 版常用变量 / secrets：
 
+- `EMAIL_MANAGEMENT_WORKER_SESSION_SECRET`
+- `EMAIL_MANAGEMENT_WORKER_ENCRYPTION_SECRET`
+- `EMAIL_MANAGEMENT_WORKER_AUTH_SESSION_TTL_DAYS`
 - `EMAIL_MANAGEMENT_WORKER_MAIL_FETCH_LIMIT`
 - `EMAIL_MANAGEMENT_WORKER_LIVE_TOKEN_URL`
 - `EMAIL_MANAGEMENT_WORKER_MS_TOKEN_URL`

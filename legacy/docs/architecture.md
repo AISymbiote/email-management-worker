@@ -16,12 +16,10 @@
 ```mermaid
 flowchart LR
     Browser["Browser / email-management-app"] --> IndexedDB["IndexedDB<br/>accounts + emails cache"]
-    Browser --> API["Flask API / email-management-backend"]
-    API --> SQLite["SQLite<br/>users + user_profiles + auth_sessions + cloud_accounts + cloud_account_secrets"]
+    Browser --> API["Cloudflare Worker / src"]
+    API --> D1["D1<br/>users + auth_sessions + cloud_accounts + cloud_account_secrets"]
     API --> Token["Microsoft token endpoint"]
-    API --> IMAP["Outlook IMAP XOAUTH2"]
-    API --> Graph["Microsoft Graph (fallback path)"]
-    API --> GoogleOAuth["Google OAuth 2.0"]
+    API --> Graph["Microsoft Graph"]
     API --> GmailAPI["Gmail API"]
 ```
 
@@ -35,8 +33,8 @@ flowchart LR
 特点：
 
 - 本地模式仍以浏览器 `IndexedDB` 为主
-- 登录后可把普通资料同步到后端 SQLite
-- 完整凭据走单独加密表，登录后可直接拉取和导出
+- 登录后会把普通资料同步到 Worker D1
+- 完整凭据走单独 AES-GCM 加密表，登录后可恢复到本机
 - 账号、分组、邮件缓存主要存浏览器本地
 
 ### 本地数据模型
@@ -62,19 +60,18 @@ flowchart LR
 
 - 同一个浏览器实例就是一个独立数据空间
 - 换浏览器或清空站点数据后，本地账号列表也会消失
-- 普通云同步只会补回普通资料；完整凭据需要在设置页主动拉取
+- 登录后会从云端补回普通资料和加密保存的完整凭据
 
-## 后端
+## Worker 后端
 
-后端目录：`email-management-backend/`
+Worker 后端目录：`src/`
 
 技术栈：
 
-- Flask
-- Gunicorn
-- SQLite
-- requests
-- Python 标准库 `imaplib`
+- Cloudflare Workers
+- D1
+- Web Crypto
+- Microsoft Graph / Gmail API
 
 ### 核心职责
 
@@ -82,19 +79,19 @@ flowchart LR
 
 1. 托管前端静态文件
 2. 提供用户注册 / 登录 / 会话鉴权
-3. 同步普通资料到 SQLite
+3. 同步普通资料到 D1
 4. 接收前端请求并换微软或 Google 令牌，然后拉取邮件
 5. 以加密方式保存完整账号凭据，并在登录后返回给当前用户
 
-### 第一阶段数据库
+### Worker D1 数据库
 
-SQLite 当前包含这些核心表：
+D1 当前包含这些核心表：
 
 - `users`
-- `user_profiles`
 - `auth_sessions`
 - `cloud_accounts`
 - `cloud_account_secrets`
+- `auth_login_attempts`
 
 设计边界：
 
@@ -129,7 +126,7 @@ SQLite 当前包含这些核心表：
 如果需要跨设备管理完整资料，必须走单独的完整凭据接口：
 
 - 需要 Bearer 登录态
-- 服务端用 `EMAIL_MANAGEMENT_WORKER_SENSITIVE_KEY_PATH` 对应的 Fernet key 解密或加密
+- 服务端用 `EMAIL_MANAGEMENT_WORKER_ENCRYPTION_SECRET` 派生 AES-GCM key 解密或加密
 - 返回到前端后会写入当前浏览器 IndexedDB，方便继续本地管理和导出
 
 ### 核心接口
@@ -139,7 +136,7 @@ SQLite 当前包含这些核心表：
 职责：
 
 - 根据 `client_id + refresh_token` 换 token
-- 判断当前账号更适合走 `graph` 还是 `imap`
+- 探测当前账号是否可走 Microsoft Graph
 
 这条接口仍然只服务于 Microsoft / Outlook 账号。
 

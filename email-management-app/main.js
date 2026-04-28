@@ -13,12 +13,27 @@ function normalizeApiBase(value) {
 const runtimeConfig = window.EMAIL_MANAGEMENT_WORKER_CONFIG || {};
 const inferredApiBase = window.location.origin;
 const API_BASE = normalizeApiBase(runtimeConfig.API_BASE) || normalizeApiBase(inferredApiBase);
+axios.defaults.withCredentials = true;
 
 // 创建Vue应用
 const app = createApp({
     data() {
         return {
             apiBase: API_BASE,
+            authUser: null,
+            authAvailable: false,
+            authToken: sessionStorage.getItem('emailManagementAuthToken') || '',
+            authDialogVisible: false,
+            authMode: 'login',
+            authLoading: false,
+            authForm: {
+                email: '',
+                password: ''
+            },
+            cloudSyncing: false,
+            cloudLastSyncedAt: '',
+            cloudSyncTimer: null,
+            cloudRestoring: false,
             loading: false,
             accounts: [],
             selectedAccounts: [],
@@ -95,6 +110,15 @@ const app = createApp({
     },
 
     computed: {
+        isLoggedIn() {
+            return Boolean(this.authUser);
+        },
+        cloudStatusText() {
+            if (!this.authAvailable) return '本地模式';
+            if (!this.isLoggedIn) return '未登录，本地模式';
+            if (this.cloudSyncing) return '云同步中...';
+            return this.cloudLastSyncedAt ? `已同步 ${this.cloudLastSyncedAt}` : '已登录，等待同步';
+        },
         groupsForDelete() {
             return this.groups.filter(g => g.name !== '默认分组');
         },
@@ -120,6 +144,7 @@ const app = createApp({
         }
 
         this.loadGroupColorsFromStorage();
+        await this.initAuth();
         await this.init();
     },
 
@@ -372,6 +397,211 @@ const app = createApp({
 </head>
 <body>${sanitizedBody}</body>
 </html>`;
+        },
+
+        // ==================== 登录与云同步 ====================
+        authHeaders() {
+            return this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {};
+        },
+
+        openAuthDialog(mode = 'login') {
+            this.authMode = mode;
+            this.authForm.password = '';
+            this.authDialogVisible = true;
+        },
+
+        async initAuth() {
+            try {
+                const response = await axios.get(`${this.apiBase}/api/auth/me`, {
+                    headers: this.authHeaders()
+                });
+                this.authAvailable = response.data?.cloud_available !== false;
+                if (response.data?.authenticated) {
+                    this.authUser = response.data.user;
+                    await this.restoreCloudAccountsToLocal();
+                    this.queueCloudSync(200);
+                } else {
+                    this.authUser = null;
+                }
+            } catch (error) {
+                console.warn('登录态检查失败，继续使用本地模式:', error.response?.data?.message || error.message);
+                this.authAvailable = false;
+                this.authUser = null;
+            }
+        },
+
+        async submitAuth() {
+            const email = (this.authForm.email || '').trim();
+            const password = this.authForm.password || '';
+            if (!email || !password) {
+                ElMessage.warning('请输入邮箱和密码');
+                return;
+            }
+
+            this.authLoading = true;
+            try {
+                const path = this.authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+                const response = await axios.post(`${this.apiBase}${path}`, { email, password });
+                if (!response.data?.success) {
+                    throw new Error(response.data?.message || '登录失败');
+                }
+                this.authUser = response.data.user;
+                if (response.data.session_token) {
+                    this.authToken = response.data.session_token;
+                    sessionStorage.setItem('emailManagementAuthToken', this.authToken);
+                }
+                this.authDialogVisible = false;
+                ElMessage.success(this.authMode === 'register' ? '注册并登录成功' : '登录成功');
+
+                await this.restoreCloudAccountsToLocal();
+                await this.loadGroups();
+                await this.loadAccounts();
+                this.queueCloudSync(200);
+            } catch (error) {
+                const message = error.response?.data?.message || error.message || '登录失败';
+                ElMessage.error(message);
+            } finally {
+                this.authLoading = false;
+            }
+        },
+
+        async logout() {
+            try {
+                await axios.post(`${this.apiBase}/api/auth/logout`, {}, {
+                    headers: this.authHeaders()
+                });
+            } catch (error) {
+                console.warn('退出登录请求失败:', error.response?.data?.message || error.message);
+            }
+            this.authUser = null;
+            this.authToken = '';
+            sessionStorage.removeItem('emailManagementAuthToken');
+            this.cloudLastSyncedAt = '';
+            ElMessage.success('已退出登录，本地数据仍保留在当前浏览器');
+        },
+
+        handleUserCommand(command) {
+            if (command === 'sync') {
+                this.syncCloudSnapshot();
+            } else if (command === 'logout') {
+                this.logout();
+            }
+        },
+
+        accountToCloudAccount(account) {
+            const normalized = this.normalizeAccountRecord(account);
+            return {
+                email_address: normalized.邮箱地址 || '',
+                provider: normalized.provider || 'microsoft',
+                group_name: normalized.分组 || '默认分组',
+                status: normalized.状态 || '',
+                note: normalized.备注 || '',
+                oauth_status: normalized.oauth_status || normalized.令牌类型 || '',
+                oauth_email: normalized.oauth_email || '',
+                oauth_updated_at: normalized.oauth_updated_at || (normalized.权限已检测 ? new Date().toISOString() : ''),
+                import_sequence: normalized.导入序号 || 0
+            };
+        },
+
+        accountToCloudSecret(account) {
+            return {
+                email_address: account.邮箱地址 || '',
+                password: account.密码 || '',
+                client_id: account.client_id || '',
+                refresh_token: account.刷新令牌 || '',
+                token_expires_at: account.令牌过期时间 || '',
+                recovery_email: account.recovery_email || account.辅助邮箱 || '',
+                twofa_secret: account.twofa_secret || account['2FA'] || ''
+            };
+        },
+
+        cloudAccountToLocal(account, secret = {}) {
+            return this.normalizeAccountRecord({
+                邮箱地址: account.email_address,
+                密码: secret.password || '',
+                client_id: secret.client_id || '',
+                刷新令牌: secret.refresh_token || '',
+                令牌过期时间: secret.token_expires_at || '',
+                recovery_email: secret.recovery_email || '',
+                twofa_secret: secret.twofa_secret || '',
+                分组: account.group_name || '默认分组',
+                provider: account.provider || 'microsoft',
+                状态: account.status || '',
+                备注: account.note || '',
+                令牌类型: account.oauth_status || null,
+                权限已检测: Boolean(account.oauth_status),
+                使用本地IP: false,
+                oauth_status: account.oauth_status || '',
+                oauth_email: account.oauth_email || '',
+                oauth_updated_at: account.oauth_updated_at || '',
+                导入序号: account.import_sequence || 0
+            });
+        },
+
+        async restoreCloudAccountsToLocal() {
+            if (!this.isLoggedIn) return;
+            this.cloudRestoring = true;
+            try {
+                const [accountsResponse, secretsResponse] = await Promise.all([
+                    axios.get(`${this.apiBase}/api/cloud/accounts`, { headers: this.authHeaders() }),
+                    axios.post(`${this.apiBase}/api/cloud/secrets/unlock`, {}, { headers: this.authHeaders() })
+                ]);
+
+                const cloudAccounts = accountsResponse.data?.accounts || [];
+                const cloudSecrets = secretsResponse.data?.accounts || [];
+                if (cloudAccounts.length === 0) return;
+
+                const secretMap = new Map(cloudSecrets.map(secret => [String(secret.email_address || '').toLowerCase(), secret]));
+                const existing = await localDB.getAllAccounts();
+                const existingMap = new Map(existing.map(account => [String(account.邮箱地址 || '').toLowerCase(), account]));
+                const merged = cloudAccounts.map(account => {
+                    const email = String(account.email_address || '').toLowerCase();
+                    const local = existingMap.get(email) || {};
+                    const cloud = this.cloudAccountToLocal(account, secretMap.get(email) || {});
+                    return this.normalizeAccountRecord({ ...local, ...cloud });
+                });
+
+                await localDB.addAccounts(merged);
+                ElMessage.success(`已从云端恢复 ${merged.length} 个账号到本机`);
+            } catch (error) {
+                const message = error.response?.data?.message || error.message || '云端恢复失败';
+                console.warn('云端恢复失败:', message);
+                ElMessage.warning(message);
+            } finally {
+                this.cloudRestoring = false;
+            }
+        },
+
+        queueCloudSync(delay = 800) {
+            if (!this.isLoggedIn || this.cloudRestoring) return;
+            clearTimeout(this.cloudSyncTimer);
+            this.cloudSyncTimer = setTimeout(() => {
+                this.syncCloudSnapshot();
+            }, delay);
+        },
+
+        async syncCloudSnapshot() {
+            if (!this.isLoggedIn || this.cloudRestoring) return;
+            this.cloudSyncing = true;
+            try {
+                const accounts = (await localDB.getAllAccounts()).map(account => this.normalizeAccountRecord(account));
+                const publicAccounts = accounts.map(account => this.accountToCloudAccount(account));
+                const secrets = accounts.map(account => this.accountToCloudSecret(account));
+
+                await axios.post(`${this.apiBase}/api/cloud/accounts/sync`, { accounts: publicAccounts }, {
+                    headers: this.authHeaders()
+                });
+                await axios.post(`${this.apiBase}/api/cloud/secrets/sync`, { accounts: secrets }, {
+                    headers: this.authHeaders()
+                });
+                this.cloudLastSyncedAt = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            } catch (error) {
+                const message = error.response?.data?.message || error.message || '云同步失败';
+                console.warn('云同步失败:', message);
+                ElMessage.warning(message);
+            } finally {
+                this.cloudSyncing = false;
+            }
         },
 
         // ==================== 账号管理 ====================
@@ -655,6 +885,7 @@ const app = createApp({
 
                 await this.loadAccounts();
                 await this.loadGroups();
+                this.queueCloudSync();
 
                 // 不再自动检测权限，等用户点击"查看"时再检测
                 // this.batchDetectPermissions(accounts);
@@ -717,6 +948,7 @@ const app = createApp({
 
                 await this.loadAccounts();
                 await this.loadGroups();
+                this.queueCloudSync();
 
                 // 不再自动检测权限，等用户点击"查看"时再检测
                 // this.batchDetectPermissions(accounts);
@@ -854,6 +1086,8 @@ const app = createApp({
 
                 ElMessage.success('删除成功');
                 await this.loadAccounts();
+                await this.loadGroups();
+                this.queueCloudSync();
             } catch (error) {
                 if (error !== 'cancel') {
                     ElMessage.error('删除失败: ' + error.message);
@@ -915,7 +1149,9 @@ const app = createApp({
                 }
 
                 ElMessage.success(`成功删除 ${emails.length} 个账号`);
-                this.loadAccounts();
+                await this.loadAccounts();
+                await this.loadGroups();
+                this.queueCloudSync();
             } catch (error) {
                 if (error !== 'cancel') {
                     ElMessage.error('删除失败: ' + error.message);
@@ -955,6 +1191,7 @@ const app = createApp({
                 this.groupDialogVisible = false;
                 await this.loadGroups();
                 await this.loadAccounts();
+                this.queueCloudSync();
             } catch (error) {
                 ElMessage.error('设置分组失败: ' + (error.response?.data?.detail || error.message));
             }
@@ -1052,6 +1289,7 @@ const app = createApp({
                 this.deleteGroupDialogVisible = false;
                 await this.loadGroups();
                 await this.loadAccounts();
+                this.queueCloudSync();
             } catch (error) {
                 if (error !== 'cancel') {
                     ElMessage.error('删除分组失败: ' + (error.response?.data?.detail || error.message));
@@ -1260,6 +1498,7 @@ const app = createApp({
 
             // 刷新账号列表
             await this.loadAccounts();
+            this.queueCloudSync();
 
             ElMessage.success(`权限检测完成！共检测 ${accounts.length} 个账号`);
         },
@@ -1399,6 +1638,7 @@ const app = createApp({
                         token_type: permissionResult.token_type,
                         use_local_ip: permissionResult.use_local_ip
                     });
+                    this.queueCloudSync();
 
                     // 更新当前账号的令牌类型（用于后续邮件获取）
                     令牌类型 = permissionResult.token_type;
@@ -1437,6 +1677,7 @@ const app = createApp({
 
                                 // 刷新账号列表
                                 await this.loadAccounts();
+                                this.queueCloudSync();
 
                                 ElMessage.warning({
                                     message: `${errorMsg}，系统已自动标记`,
@@ -1499,6 +1740,7 @@ const app = createApp({
 
                         // 刷新账号列表
                         await this.loadAccounts();
+                        this.queueCloudSync();
 
                         ElMessage.warning({
                             message: errorType === 'banned' ? '账号已被封禁，系统已自动标记' : '账号已被锁定，系统已自动标记',
@@ -1690,6 +1932,7 @@ const app = createApp({
                             // 刷新页面
                             await this.loadGroups();
                             await this.loadAccounts();
+                            this.queueCloudSync();
                         } catch (error) {
                             ElMessage.error('导入失败: ' + error.message);
                         }
