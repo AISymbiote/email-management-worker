@@ -22,8 +22,9 @@ not_found_handling = "single-page-application"
 # D1 数据库（完整部署才需要）
 #
 # 极简部署：保持下面整块示例配置为注释状态。
-# 完整部署：按 README 创建并初始化 D1 后，填入 database_id，
-# 然后取消下面整块示例配置的注释。
+# 完整部署：取消下面整块示例配置的注释后，只修改 database_id。
+# binding 必须保持为 "DB"，database_name 保持为 "email-management-worker-db"。
+# 不要直接复制 wrangler d1 create 输出里的 binding 名称。
 # -----------------------------------------------------------------------------
 # [[d1_databases]]
 # binding = "DB"

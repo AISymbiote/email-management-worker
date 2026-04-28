@@ -60,7 +60,7 @@ cp wrangler.example.toml wrangler.toml
 npx wrangler d1 create email-management-worker-db
 ```
 
-4. 把返回的 `database_id` 填入 `wrangler.toml`，并取消 D1 配置块的注释：
+4. 取消 `wrangler.toml` 中 D1 配置块的注释，并且**只修改 `database_id`**。`binding` 必须保持为 `DB`，`database_name` 保持为 `email-management-worker-db`。不要直接复制 Wrangler 输出里的 `binding = "email_management_worker_db"`，因为 Worker 代码读取的是 `env.DB`。
 
 ```toml
 [[d1_databases]]
